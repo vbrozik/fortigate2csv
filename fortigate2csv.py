@@ -128,7 +128,7 @@ def main():
             'profile-group', 'nat', 'comments']
 
     # logout to prevent stale sessions
-    print(f'Logging out of firewall')
+    print('Logging out of firewall')
     f.get(f'https://{args.firewall}/logout', verify=False, timeout=10)
 
     # format the data
@@ -148,11 +148,9 @@ def main():
     else:
         # save to designated file
         print(f'Saving to {args.outfile}')
-        file = open(args.outfile, "w")
-        file.write(csv_data)
-        file.close()
-
-    print(f'Done!')
+        with open(args.outfile, "w") as file:
+            file.write(csv_data)
+    print('Done!')
 
 
 def build_csv(headers, rows, address_lookup=None):
@@ -169,7 +167,7 @@ def build_csv(headers, rows, address_lookup=None):
 
     # ROWS
     for row in rows:
-        row_data = [] # holds the data for each row before we add to csv
+        row_data = []  # holds the data for each row before we add to csv
 
         # COLUMNS
         for header in headers:
@@ -182,10 +180,10 @@ def build_csv(headers, rows, address_lookup=None):
                         row_data.append('')
                     else:
                         subitems = []
-                        if header == 'ipv4_addresses': # parse list, extract ip mask for each item within the field
+                        if header == 'ipv4_addresses':  # parse list, extract ip mask for each item within the field
                             for x in row[header]:
                                 subitems.append(f"{x['ip']}/{x['cidr_netmask']}")
-                        else: # parse list, extract q_origin_key for each item within the field
+                        else:  # parse list, extract q_origin_key for each item within the field
                             for x in row[header]:
                                 if address_lookup and x['q_origin_key'] in address_lookup:
                                     subitems.append(address_lookup[x['q_origin_key']])
@@ -211,7 +209,7 @@ def build_csv(headers, rows, address_lookup=None):
     return csv
 
 
-def f_login(host,user,password,vdom):
+def f_login(host, user, password, vdom):
     """
     Return a requests session after authenticating.
 
@@ -239,7 +237,7 @@ def f_login(host,user,password,vdom):
     if 'logindisclaimer' in p.text:
         print('Accepting login banner')
         session.post(f'https://{host}/logindisclaimer',
-            data=f'confirm=1&redir=/ng',
+            data='confirm=1&redir=/ng',
             verify=False,
             timeout=10)
 
