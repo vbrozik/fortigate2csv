@@ -12,12 +12,12 @@ import argparse
 import getpass
 import sys
 import requests
-import json
 from netaddr import IPAddress
 
 # disable warnings for insecure connections
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
-requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+import urllib3
+import urllib3.exceptions
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # items
 item_types = ['interface', 'policy', 'snat', 'address', 'service', 'dnat', 'pool', 'addrgrp']
