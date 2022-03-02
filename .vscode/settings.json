@@ -1,10 +1,22 @@
 {
     "cSpell.words": [
         "addrgrp",
+        "ccsrftoken",
         "dnat",
+        "dstintf",
         "Forti",
         "netaddr",
+        "redir",
         "snat",
         "vdom"
-    ]
+    ],
+    "python.linting.mypyEnabled": true,
+    "python.languageServer": "Pylance",
+    "python.analysis.typeCheckingMode": "basic",
+    "python.formatting.provider": "black",
+    "python.linting.flake8Enabled": true,
+    "restructuredtext.linter.executablePath": "rstcheck",
+    "python.linting.pydocstyleEnabled": true,
+    "python.testing.pytestEnabled": true,
+    "editor.formatOnSave": true
 }
