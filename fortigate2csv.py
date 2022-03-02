@@ -122,16 +122,16 @@ def main():
         headers = ['policyid', 'name', 'srcintf', 'dstintf', 'srcaddr', 'dstaddr', 'internet-service-id',
             'internet-service-src-id', 'service', 'action', 'status', 'schedule', 'visibility', 
             'profile-group', 'nat', 'comments']
-    
+
     # logout to prevent stale sessions
-    print(f'Logging out of firewall')
+    print('Logging out of firewall')
     f.get(f'https://{args.firewall}/logout', verify=False, timeout=10)
-    
+
     # format the data
     if 'results' not in data:
         print('Firewall returned no results')
         sys.exit(1)
-    
+
     if args.translate:
         csv_data = build_csv(headers, data['results'], addresses)
     else:
@@ -144,11 +144,9 @@ def main():
     else:
         # save to designated file
         print(f'Saving to {args.outfile}')
-        file = open(args.outfile, "w")
-        file.write(csv_data)
-        file.close()
-
-    print(f'Done!')
+        with open(args.outfile, "w") as file:
+            file.write(csv_data)
+    print('Done!')
 
 def build_csv(headers, rows, address_lookup=None):
     """ 
@@ -177,26 +175,21 @@ def build_csv(headers, rows, address_lookup=None):
                         row_data.append('')
                     else:
                         subitems = []
-                        if header == 'ipv4_addresses': # parse list, extract ip mask for each item within the field
-                            for x in row[header]:
+                        for x in row[header]:
+                            if header == 'ipv4_addresses': # parse list, extract ip mask for each item within the field
                                 subitems.append(f"{x['ip']}/{x['cidr_netmask']}")
-                        else: # parse list, extract q_origin_key for each item within the field
-                            for x in row[header]:
-                                if address_lookup and x['q_origin_key'] in address_lookup:
-                                    subitems.append(address_lookup[x['q_origin_key']]) 
-                                else:
-                                    subitems.append(x['q_origin_key']) 
+                            elif address_lookup and x['q_origin_key'] in address_lookup:
+                                subitems.append(address_lookup[x['q_origin_key']])
+                            else:
+                                subitems.append(x['q_origin_key'])
                         # join with a space, can't use comma due to csv
-                        row_data.append(' '.join(map(str, subitems))) 
+                        row_data.append(' '.join(map(str, subitems)))
+                elif type(row[header]) == str:
+                    row_data.append(row[header].replace(",", ""))
+                elif address_lookup and row[header] in address_lookup:
+                    subitems.append(address_lookup[row[header]])
                 else:
-                    # this field is just a string/int, simply add it to the row
-                    if type(row[header]) == str:
-                        row_data.append(row[header].replace(",", ""))
-                    else:
-                        if address_lookup and row[header] in address_lookup:
-                            subitems.append(address_lookup[row[header]]) 
-                        else:
-                            row_data.append(row[header])
+                    row_data.append(row[header])
             else:
                 # display blanks where we have no info for this header
                 row_data.append('')
@@ -235,10 +228,13 @@ def f_login(host,user,password,vdom):
     # if there is a login banner, we need to 'accept' it
     if 'logindisclaimer' in p.text:
         print('Accepting login banner')
-        session.post(f'https://{host}/logindisclaimer',
-            data=f'confirm=1&redir=/ng',
+        session.post(
+            f'https://{host}/logindisclaimer',
+            data='confirm=1&redir=/ng',
             verify=False,
-            timeout=10)
+            timeout=10,
+        )
+
 
     # check login was successful
     try:
