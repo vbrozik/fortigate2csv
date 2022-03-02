@@ -8,10 +8,14 @@ updated   2021-06-10
 url       github.com/danwalkeruk/fortigate2csv
 """
 
+from __future__ import annotations
+
 import argparse
 import getpass
 import sys
 import requests
+import json
+from typing import Iterator, Iterable
 from netaddr import IPAddress
 
 # disable warnings for insecure connections
@@ -19,6 +23,25 @@ import urllib3
 import urllib3.exceptions
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+
+class hashabledict(dict):
+    """Dictionary that can be hashed.
+
+    This allows using the dictionary as a key (in a dictionary, set etc.)
+    """
+
+    def __key(self) -> tuple:
+        return tuple(sorted(self.items()))
+
+    def __hash__(self) -> int:
+        """Return hash of dictionary."""
+        return hash(self.__key())
+
+    def __eq__(self, other) -> bool:
+        """Compare dictionaries."""
+        return self.__key() == other.__key()
+
 
 # items
 item_types = [
@@ -231,6 +254,11 @@ def main():
         print("Firewall returned no results")
         sys.exit(1)
 
+    # DIAG: Test output for iterating over policy objects
+    if args.item == "policy":
+        # print(json.dumps(data, indent=4))
+        print(objects_from_policies(data["results"]))
+
     if args.translate:
         csv_data = build_csv(headers, data["results"], addresses)
     else:
@@ -248,9 +276,48 @@ def main():
     print("Done!")
 
 
-def build_csv(headers, rows, address_lookup=None):
+def objects_from_policies(policies: Iterable[dict]) -> set[dict]:
+    """Given an iterable of policies, return iterable of objects.
+
+    Args:
+        policies: list of policies to iterate over
+
+    Returns:
+        set of objects from the policies
     """
-    Return a formatted CSV, dynamically generated from headers/data.
+    objects: set[dict] = set()
+    for policy in policies:
+        for obj in iter_policy_objects(policy):
+            objects.add(hashabledict(obj))
+    return objects
+
+
+def iter_policy_objects(policy: dict) -> Iterator[dict]:
+    """Iterate through the policy (rule) and yield the objects.
+
+    Args:
+        policy (dict): The policy to iterate through.
+
+    Yields:
+        dict: The objects in the policy.
+    """
+    # object types to be irerated through
+    object_lists = {
+        "srcintf",
+        "dstintf",
+        "srcaddr",
+        "dstaddr",
+        "srcaddr6",
+        "dstaddr6",
+        "service",
+    }
+    for object_type in object_lists:
+        if object_type in policy:
+            yield from policy[object_type]
+
+
+def build_csv(headers, rows, address_lookup=None):
+    """Return a formatted CSV, dynamically generated from headers/data.
 
     :param headers: CSV header row (field names)
     :param rows: list of data to parse
@@ -310,8 +377,7 @@ def build_csv(headers, rows, address_lookup=None):
 
 
 def f_login(host, user, password, vdom):
-    """
-    Return a requests session after authenticating.
+    """Return a requests session after authenticating.
 
     :param host: IP/FQDN of firewall
     :param user: FortiGate username
