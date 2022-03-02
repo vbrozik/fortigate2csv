@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 
-# author    dan walker <code@danwalker.com>
-# created   2020-11-12
-# updated   2021-06-10
-# url       github.com/danwalkeruk/fortigate2csv
+"""Export policy rules and objects from FortiGate.
+
+author    dan walker <code@danwalker.com>
+created   2020-11-12
+updated   2021-06-10
+url       github.com/danwalkeruk/fortigate2csv
+"""
 
 import argparse
 import getpass
@@ -19,8 +22,9 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 # items
 item_types = ['interface', 'policy', 'snat', 'address', 'service', 'dnat', 'pool', 'addrgrp']
 
+
 def main():
-    # build a parser, set arguments, parse the input
+    """Build a parser, set arguments, parse the input."""
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--firewall',  help='Firewall', required=True)
     parser.add_argument('-u', '--user',      help='Username', required=True)
@@ -77,19 +81,19 @@ def main():
     # DNAT and VIPs
     if args.item == 'dnat':
         data = f.get(f'{base_url}api/v2/cmdb/firewall/vip/?vdom={args.vdom}').json()
-        headers = ['name', 'extip', 'mappedip', 'extintf', 'arp-reply', 
+        headers = ['name', 'extip', 'mappedip', 'extintf', 'arp-reply',
             'nat-source-vip', 'portforward', 'srcintf-filter', 'comments']
 
     # SNAT Mapping
     elif args.item == 'snat':
         data = f.get(f'{base_url}api/v2/cmdb/firewall/central-snat-map/?vdom={args.vdom}').json()
-        headers = ['policyid', 'status', 'orig-addr', 'dst-addr', 'srcintf', 'dstintf', 
+        headers = ['policyid', 'status', 'orig-addr', 'dst-addr', 'srcintf', 'dstintf',
             'nat', 'nat-ippool', 'comments']
 
     # addresses
     elif args.item == 'address':
         data = f.get(f'{base_url}api/v2/cmdb/firewall/address/?vdom={args.vdom}').json()
-        headers = ['name', 'type', 'subnet', 'fqdn', 'associated-interface', 'visibility', 
+        headers = ['name', 'type', 'subnet', 'fqdn', 'associated-interface', 'visibility',
             'allow-routing', 'comment']
 
     # address groups
@@ -100,7 +104,7 @@ def main():
     # pools
     elif args.item == 'pool':
         data = f.get(f'{base_url}api/v2/cmdb/firewall/ippool/?vdom={args.vdom}').json()
-        headers = ['name', 'type', 'startip', 'endip', 'source-startip', 'source-endip', 
+        headers = ['name', 'type', 'startip', 'endip', 'source-startip', 'source-endip',
         'block-size', 'permit-any-host', 'arp-reply', 'comments']
 
     # services
@@ -112,26 +116,26 @@ def main():
     # interfaces
     elif args.item == 'interface':
         data = f.get(f'{base_url}api/v2/monitor/system/available-interfaces?vdom={args.vdom}').json()
-        headers = ['name', 'alias', 'description', 'type', 'is_vdom_link', 'is_system_interface', 
-            'is_vlan', 'status', 'role', 'ipv4_addresses', 'vlan_interface', 'vlan_id', 
+        headers = ['name', 'alias', 'description', 'type', 'is_vdom_link', 'is_system_interface',
+            'is_vlan', 'status', 'role', 'ipv4_addresses', 'vlan_interface', 'vlan_id',
             'mac_address', 'visibility', 'comments']
 
     # policies
     elif args.item == 'policy':
         data = f.get(f'{base_url}api/v2/cmdb/firewall/policy?vdom={args.vdom}').json()
         headers = ['policyid', 'name', 'srcintf', 'dstintf', 'srcaddr', 'dstaddr', 'internet-service-id',
-            'internet-service-src-id', 'service', 'action', 'status', 'schedule', 'visibility', 
+            'internet-service-src-id', 'service', 'action', 'status', 'schedule', 'visibility',
             'profile-group', 'nat', 'comments']
-    
+
     # logout to prevent stale sessions
     print(f'Logging out of firewall')
     f.get(f'https://{args.firewall}/logout', verify=False, timeout=10)
-    
+
     # format the data
     if 'results' not in data:
         print('Firewall returned no results')
         sys.exit(1)
-    
+
     if args.translate:
         csv_data = build_csv(headers, data['results'], addresses)
     else:
@@ -150,9 +154,10 @@ def main():
 
     print(f'Done!')
 
+
 def build_csv(headers, rows, address_lookup=None):
-    """ 
-    Return a formatted CSV, dynamically generated from headers/data
+    """
+    Return a formatted CSV, dynamically generated from headers/data.
 
     :param headers: CSV header row (field names)
     :param rows: list of data to parse
@@ -183,18 +188,18 @@ def build_csv(headers, rows, address_lookup=None):
                         else: # parse list, extract q_origin_key for each item within the field
                             for x in row[header]:
                                 if address_lookup and x['q_origin_key'] in address_lookup:
-                                    subitems.append(address_lookup[x['q_origin_key']]) 
+                                    subitems.append(address_lookup[x['q_origin_key']])
                                 else:
-                                    subitems.append(x['q_origin_key']) 
+                                    subitems.append(x['q_origin_key'])
                         # join with a space, can't use comma due to csv
-                        row_data.append(' '.join(map(str, subitems))) 
+                        row_data.append(' '.join(map(str, subitems)))
                 else:
                     # this field is just a string/int, simply add it to the row
                     if type(row[header]) == str:
                         row_data.append(row[header].replace(",", ""))
                     else:
                         if address_lookup and row[header] in address_lookup:
-                            subitems.append(address_lookup[row[header]]) 
+                            subitems.append(address_lookup[row[header]])
                         else:
                             row_data.append(row[header])
             else:
@@ -206,11 +211,9 @@ def build_csv(headers, rows, address_lookup=None):
     return csv
 
 
-
-
 def f_login(host,user,password,vdom):
-    """ 
-    Return a requests session after authenticating
+    """
+    Return a requests session after authenticating.
 
     :param host: IP/FQDN of firewall
     :param user: FortiGate username
@@ -245,11 +248,12 @@ def f_login(host,user,password,vdom):
         login = session.get(f'https://{host}/api/v2/cmdb/system/vdom')
         login.raise_for_status()
         print(f'Successfully logged in as {user}')
-    except Exception as e: 
+    except Exception as e:
         print(f'Failed to login with provided credentials: {e}')
         sys.exit(1)
 
     return session
+
 
 if __name__ == "__main__":
     main()
