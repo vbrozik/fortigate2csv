@@ -26,20 +26,33 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 class hashabledict(dict):
-    """Dictionary that can be hashed.
+    """Implement dictionary that can be hashed.
 
-    This allows using the dictionary as a key (in a dictionary, set etc.)
+    This class allows makes the dictionary hashable to be useable as a key
+    in a dictionary, set etc. The object must not be modified after
+    the hash is used otherwise the hash value changes.
+
+    * https://stackoverflow.com/questions/1151658/python-hashable-dicts
+    * https://stackoverflow.com/questions/2703599/what-would-a-frozen-dict-be
+    * https://github.com/slezica/python-frozendict
+
+    Fixme:
+        * The object expects the dictionary not to change but it does not
+            prevent it from being changed.
+        * Change of the signature of `__hash__` from `None` in the superclass
+            should be resolved.
     """
 
     def __key(self) -> tuple:
+        """Return the object representation for hashing and comparison."""
         return tuple(sorted(self.items()))
 
     def __hash__(self) -> int:
-        """Return hash of dictionary."""
+        """Return hash of the dictionary."""
         return hash(self.__key())
 
     def __eq__(self, other) -> bool:
-        """Compare dictionaries."""
+        """Compare dictionaries based on the same information as hash."""
         return self.__key() == other.__key()
 
 
@@ -277,13 +290,13 @@ def main():
 
 
 def objects_from_policies(policies: Iterable[dict]) -> set[dict]:
-    """Given an iterable of policies, return iterable of objects.
+    """Given an iterable of policies, return set of contained objects.
 
     Args:
-        policies: list of policies to iterate over
+        policies: iterable of policies to get objects from
 
     Returns:
-        set of objects from the policies
+        set of objects found in the policies
     """
     objects: set[dict] = set()
     for policy in policies:
@@ -301,8 +314,8 @@ def iter_policy_objects(policy: dict) -> Iterator[dict]:
     Yields:
         dict: The objects in the policy.
     """
-    # object types to be irerated through
-    object_lists = {
+    # object fields in a policy (rule) to be irerated through
+    object_fields_in_rule = {
         "srcintf",
         "dstintf",
         "srcaddr",
@@ -311,9 +324,9 @@ def iter_policy_objects(policy: dict) -> Iterator[dict]:
         "dstaddr6",
         "service",
     }
-    for object_type in object_lists:
-        if object_type in policy:
-            yield from policy[object_type]
+    for objects_field in object_fields_in_rule:
+        if objects_field in policy:
+            yield from policy[objects_field]
 
 
 def build_csv(headers, rows, address_lookup=None):
