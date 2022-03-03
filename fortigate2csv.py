@@ -28,7 +28,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 class hashabledict(dict):
     """Implement dictionary that can be hashed.
 
-    This class allows makes the dictionary hashable to be useable as a key
+    This class extends dict to be hashable so it is useable as a key
     in a dictionary, set etc. The object must not be modified after
     the hash is used otherwise the hash value changes.
 
