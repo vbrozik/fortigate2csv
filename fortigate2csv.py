@@ -275,31 +275,26 @@ def build_csv(headers, rows, address_lookup=None):
                         row_data.append("")
                     else:
                         subitems = []
-                        if (
-                            header == "ipv4_addresses"
-                        ):  # parse list, extract ip mask for each item within the field
-                            for x in row[header]:
+                        for x in row[header]:
+                            if     (
+                                header == "ipv4_addresses"
+                            ):  # parse list, extract ip mask for each item within the field
                                 subitems.append(f"{x['ip']}/{x['cidr_netmask']}")
-                        else:  # parse list, extract q_origin_key for each item within the field
-                            for x in row[header]:
-                                if (
+                            elif (
                                     address_lookup
                                     and x["q_origin_key"] in address_lookup
                                 ):
-                                    subitems.append(address_lookup[x["q_origin_key"]])
-                                else:
-                                    subitems.append(x["q_origin_key"])
+                                subitems.append(address_lookup[x["q_origin_key"]])
+                            else:
+                                subitems.append(x["q_origin_key"])
                         # join with a space, can't use comma due to csv
                         row_data.append(" ".join(map(str, subitems)))
+                elif type(row[header]) == str:
+                    row_data.append(row[header].replace(",", ""))
+                elif address_lookup and row[header] in address_lookup:
+                    subitems.append(address_lookup[row[header]])
                 else:
-                    # this field is just a string/int, simply add it to the row
-                    if type(row[header]) == str:
-                        row_data.append(row[header].replace(",", ""))
-                    else:
-                        if address_lookup and row[header] in address_lookup:
-                            subitems.append(address_lookup[row[header]])
-                        else:
-                            row_data.append(row[header])
+                    row_data.append(row[header])
             else:
                 # display blanks where we have no info for this header
                 row_data.append("")
